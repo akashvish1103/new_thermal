@@ -1,3 +1,6 @@
+# Using previous frames to smooth out the forehead rectangle fluctuations and reduce jitter.
+# Will not be used.
+
 import cv2
 import mediapipe as mp
 import utilities as ut

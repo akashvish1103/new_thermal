@@ -12,6 +12,34 @@ face_mesh = mp_face_mesh.FaceMesh(
     refine_landmarks=True
 )
 
+LEFT_CHEEK = [
+    # ✅ Already in your list
+    50, 101, 118, 119, 120,
+    121, 123, 126, 142, 187,
+    203, 205, 206, 207, 213,
+    214, 216,
+
+    # ❌ Missing — commonly included for full cheek coverage
+    36, 47, 100, 116, 117,
+    147, 177, 192, 215, 138,
+    135, 172, 136, 150, 149,
+    170, 140,
+]
+
+RIGHT_CHEEK = [
+    # ✅ Already in your list
+    280, 330, 347, 348, 349,
+    350, 352, 355, 371, 411,
+    423, 425, 426, 427, 432,
+    433, 436,
+
+    # ❌ Missing — mirror of left side
+    266, 277, 329, 345, 346,
+    376, 401, 416, 435, 367,
+    364, 397, 365, 379, 378,
+    395, 369,
+]
+
 # -----------------------------
 # Cheek Landmarks
 # -----------------------------
@@ -29,9 +57,9 @@ face_mesh = mp_face_mesh.FaceMesh(
 #     433, 436
 # ]
 
-LEFT_CHEEK = [
-    214, 216, 206, 120, 101, 50, 187
-]
+# LEFT_CHEEK = [
+#     214, 216, 206, 120, 101, 50, 187
+# ]
 
 # RIGHT_CHEEK = [
 #     280, 330, 347, 348, 349,
@@ -40,7 +68,7 @@ LEFT_CHEEK = [
 #     433, 436
 # ]
 
-ALL_CHEEKS = LEFT_CHEEK 
+ALL_CHEEKS = LEFT_CHEEK + RIGHT_CHEEK
 
 # -----------------------------
 # Webcam
