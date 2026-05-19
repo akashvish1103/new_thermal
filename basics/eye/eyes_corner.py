@@ -99,8 +99,8 @@ while True:
             cv2.rectangle(frame, (rx, ry-10), (rx-20, ry+10), (255, 0, 0), 2)    #rectangle around right inner eye corner
 
             # Draw dots on the inner eye corners for visualization
-            cv2.circle(frame, (lx, ly), 2, (255, 255, 255), -3)  
-            cv2.circle(frame, (rx, ry), 2, (255, 255, 255), -3)
+            # cv2.circle(frame, (lx, ly), 2, (255, 255, 255), -3)  
+            # cv2.circle(frame, (rx, ry), 2, (255, 255, 255), -3)
 
             # Extracting the ROI box around inner eye corners (20x20 box) 
             box_left = grey[ly-10:ly+10, lx:lx+20]
