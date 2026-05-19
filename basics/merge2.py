@@ -431,6 +431,11 @@ right_cheek_temperatures = []
 # video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 # video_path = video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub6_pooja\output_pooja_grey_manual.mp4"
 video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
+# video_path = r"D:\Lie Detection Data HTI\Yetnak\yetnak_grey_manual.mpg"
+# video_path = r"D:\Lie Detection Data HTI\Swamini\swamini_grey_manual.mpg"
+# video_path = r"D:\Lie Detection Data HTI\Girish\girish_grey_manual.mpg"
+
+
 cap = cv2.VideoCapture(video_path)
 
 # ============================================================
@@ -481,7 +486,7 @@ while True:
 
     if results.multi_face_landmarks:
 
-        for face_landmarks in results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:          # iterating over all the faces 
 
             # =================================================
             # GET ROI COORDINATES
