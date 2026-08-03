@@ -40,7 +40,7 @@ video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection
 # video_path = r"D:\Lie Detection Data HTI\Yetnak\2026-02-25 14-29-38.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 # video_path = video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub6_pooja\output_pooja_grey_manual.mp4"
-
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal.mpg"
 cap = cv2.VideoCapture(video_path)
 
 # -----------------------------

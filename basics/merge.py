@@ -1,8 +1,10 @@
+# Final file till now which have all the 6 ROIs , i.r. eyes inner corners, forehead, nose tip, cheeks polygon
+
 import cv2
 import mediapipe as mp
 import numpy as np
 import matplotlib.pyplot as plt
-from forehead import utilities as ut
+from forehead import utilities as ut                         # defined inside NOSE folder
 
 
            # how much hottest pixels to keep from eye ROI in the analysis (10% in this case)
@@ -31,24 +33,27 @@ PERCENTAGE_PIXEL_TO_KEEP = 0.80
 # -----------------------------
 # Input Video Path
 # -----------------------------
-# video_path = r"C:\Users\Akash Vishwakarma\Downloads\krishna_grey_manual1.mp4"
+video_path = r"C:\Users\Akash Vishwakarma\Downloads\krishna_grey_manual1.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\pratham_grey_manual.wmv"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub2_rahul\output_rahul_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub3_shivam\output_shivam_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\aditi_grey_manual.wmv"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\priyank_grey_manual.wmv"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\jayesh_grey_manual.mp4"
-# video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sneha_grey_manual.wmv"
+video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sneha_grey_manual.wmv"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\prsg_akash_grey_manual_mp4_output_trimmed_for_sync_new.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Yetnak\2026-02-25 14-29-38.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 # video_path = video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub6_pooja\output_pooja_grey_manual.mp4"
-video_path = r"D:\Lie Detection Data HTI\Yetnak\yetnak_grey_manual.mpg"
+# video_path = r"D:\Lie Detection Data HTI\Yetnak\yetnak_grey_manual.mpg"
+# video_path = r"C:\Users\Akash Vishwakarma\Pictures\Camera Roll\WIN_20260525_15_35_42_Pro.mp4"
+# video_path = r"D:\Lie Detection Data HTI\Akash\2026-03-11 15-52-11.mp4"
+# video_path = r"D:\Lie Detection Data HTI\Girish\girish_grey_manual.mpg"
 cap = cv2.VideoCapture(video_path)
 
-# -----------------------------
+# ---------------------------------------------
 # Video Writer (optional)
-# -----------------------------
+# ---------------------------------------------
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = cap.get(cv2.CAP_PROP_FPS)
@@ -79,6 +84,7 @@ while True:
         cv2.COLOR_GRAY2BGR
     )
 
+
     # Face Mesh Detection
     results = face_mesh.process(rgb)
 
@@ -90,6 +96,8 @@ while True:
             a,b,c,d = ut.get_forehead_coordinates(frame, face_landmarks, flag)
             x,y,z,w = ut.get_nose_coordinates(frame, face_landmarks)
             pl, pr = ut.get_cheeks_coordinates(frame, face_landmarks, points_left, points_right)
+
+            
 
 
         

@@ -1,0 +1,60 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import detrend
+
+# ----------------------------
+# Create dummy breathing signal
+# ----------------------------
+
+fs = 30                    # 30 samples/sec
+duration = 60              # 60 sec
+
+t = np.arange(0, duration, 1/fs)
+
+# Breathing frequency = 0.25 Hz = 15 BPM
+breathing = 5 * np.sin(2 * np.pi * 0.25 * t)
+
+# ----------------------------
+# Add slow trend
+# ----------------------------
+
+trend = 0.5 * t
+
+# ----------------------------
+# Add random noise
+# ----------------------------
+
+noise = np.random.normal(0, 1, len(t))
+
+# ----------------------------
+# Final signal
+# ----------------------------
+
+signal = breathing + trend + noise
+
+# ----------------------------
+# Detrend
+# ----------------------------
+
+signal_detrended = detrend(signal)
+
+# ----------------------------
+# Plot
+# ----------------------------
+
+plt.figure(figsize=(12,8))
+
+plt.subplot(2,1,1)
+plt.plot(t, signal)
+plt.title("Original Signal = Breathing + Trend + Noise")
+plt.xlabel("Time (s)")
+plt.ylabel("Amplitude")
+
+plt.subplot(2,1,2)
+plt.plot(t, signal_detrended)
+plt.title("After detrend()")
+plt.xlabel("Time (s)")
+plt.ylabel("Amplitude")
+
+plt.tight_layout()
+plt.show()

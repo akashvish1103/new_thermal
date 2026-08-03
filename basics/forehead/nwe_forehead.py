@@ -35,6 +35,7 @@ FOREHEAD_POINTS = [
 # ============================================================
 
 video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sneha_grey_manual.wmv"
+video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
 
 cap = cv2.VideoCapture(video_path)
 

@@ -418,7 +418,7 @@ right_cheek_temperatures = []
 # INPUT VIDEO
 # ============================================================
 
-# video_path = r"C:\Users\Akash Vishwakarma\Downloads\krishna_grey_manual1.mp4"
+video_path = r"C:\Users\Akash Vishwakarma\Downloads\krishna_grey_manual1.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\pratham_grey_manual.wmv"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub2_rahul\output_rahul_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub3_shivam\output_shivam_grey_manual.mp4"
@@ -430,12 +430,12 @@ right_cheek_temperatures = []
 # video_path = r"D:\Lie Detection Data HTI\Yetnak\2026-02-25 14-29-38.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 # video_path = video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub6_pooja\output_pooja_grey_manual.mp4"
-video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
+# video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 # video_path = r"D:\Lie Detection Data HTI\Yetnak\yetnak_grey_manual.mpg"
 # video_path = r"D:\Lie Detection Data HTI\Swamini\swamini_grey_manual.mpg"
 # video_path = r"D:\Lie Detection Data HTI\Girish\girish_grey_manual.mpg"
-
-
+# video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
+video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
 cap = cv2.VideoCapture(video_path)
 
 # ============================================================

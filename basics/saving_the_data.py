@@ -11,7 +11,7 @@ from forehead import utilities as ut
 # OUTPUT CSV PATH  — CHANGE THIS
 # ============================================================
 
-SUBJECT_NAME = "akash"                                         # CHANGE: subject identifier
+SUBJECT_NAME = "aditi2"                                         # CHANGE: subject identifier
 OUTPUT_DIR   = r"C:\Users\Akash Vishwakarma\Desktop\new_thermal\data"   # CHANGE: destination folder
 OUTPUT_CSV   = os.path.join(OUTPUT_DIR, f"{SUBJECT_NAME}_roi_temperatures.csv")
 
@@ -64,7 +64,7 @@ flag = False
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\sub6_pooja\output_pooja_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"   # CHANGE: input video path
 
-# video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\aditi_grey_manual.mp4"
+video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\aditi_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\pooja_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\purva_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\rahul_grey_manual.mp4"
@@ -74,7 +74,7 @@ flag = False
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\sneha_grey_manual.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Lie_detection_ex2\Thermal_lie_detection_ex2\grey_manual\grey_manual_mp4\jayesh_grey_manual.mp4"
 
-video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
+# video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 
 
 cap = cv2.VideoCapture(video_path)
