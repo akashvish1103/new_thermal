@@ -66,7 +66,7 @@ def get_one_pixel_column(path):
 #Function 2
 def get_first_last_element_from_OnePixelColumn_AND_min_max_from_filename(lst, path):
     """
-    this function takes the list of pixel values from thefuntion "get_one_pixel_column()" and the path of the video file as input,extracts the min and max temperature values 
+    this function takes the list of pixel values and the path of the video file as input,extracts the min and max temperature values 
     from the filename, and returns them along with the first and last elements of the pixel column array.
     """
 
@@ -121,45 +121,4 @@ def map_pixel_to_temperature(pixel_value,
     return temperature
 
 
-# this the driver function that will call the above 3 functions to get the temperature corresponding to a pixel value. It will take the video path and pixel value as input and return the temperature in Celsius.
-# Function 4: Driver function 
-def driver_get_temperature(video_path, pixel_value):
-    """
-    Driver function that returns the temperature corresponding
-    to a grayscale pixel intensity.
-
-    Parameters
-    ----------
-    video_path : str
-        Path of the thermal video.
-
-    pixel_value : int or float
-        Grayscale pixel intensity whose temperature
-        is to be calculated.
-
-    Returns
-    -------
-    float
-        Temperature (°C)
-    """
-
-    # Step 1: Read calibration column from legend
-    pixel_column = get_one_pixel_column(video_path)            # calling function1
-
-    # Step 2: Get calibration values                           # calling function2
-    min_temp, max_temp, first_pixel, last_pixel = \
-        get_first_last_element_from_OnePixelColumn_AND_min_max_from_filename(
-            pixel_column,
-            video_path
-        )
-
-    # Step 3: Convert pixel → temperature                     # calling function3
-    temperature = map_pixel_to_temperature(
-        pixel_value,
-        min_temp,
-        max_temp,
-        first_pixel,
-        last_pixel
-    )
-
-    return temperature                                        # in Degree Celcius
+# Function-4, Driver Function

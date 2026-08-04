@@ -1,3 +1,27 @@
 for calculate BPM from thermal video : get_RR2.py
 For clipping RGB/Thermal video : loading_vid.py
 
+FileName : utility_linear_mapping.py ----> It contains the code to get the temperature from pixel ,that's all.
+
+
+Original Frame (BGR)
+        │
+        ▼
+Convert to Gray  ─────────────►  grey
+        │                           │
+        │                           ├── ROI temperature calculation
+        │                           │
+        ▼                           │
+Enhance (Sharpen/CLAHE/etc.)
+        │
+        ▼
+sharpened_grey_frame
+        │
+Convert to BGR
+        ▼
+MediaPipe FaceMesh
+        │
+        ▼
+Landmark Coordinates
+        │
+        └──────────────► Use coordinates on ORIGINAL grey image

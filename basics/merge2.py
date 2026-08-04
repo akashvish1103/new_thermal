@@ -436,6 +436,7 @@ video_path = r"C:\Users\Akash Vishwakarma\Downloads\krishna_grey_manual1.mp4"
 # video_path = r"D:\Lie Detection Data HTI\Girish\girish_grey_manual.mpg"
 # video_path = r"D:\Lie Detection Data HTI\Akash\akash_manual_grey.mpg"
 video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
+video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal.mpg"
 cap = cv2.VideoCapture(video_path)
 
 # ============================================================
@@ -470,7 +471,7 @@ while True:
     sharpened_grey_frame = ut.get_transformed_image(grey)
 
     # ========================================================
-    # CONVERT TO BGR FOR MEDIAPIPE
+    # CONVERT TO BGR FOR MEDIAPIPE       #rgb is the transformed image that is passed to mediapipe for face mesh detection
     # ========================================================
 
     rgb = cv2.cvtColor(
