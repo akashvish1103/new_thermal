@@ -58,7 +58,9 @@ while True:
     if not ret:
         break
 
-    frame = ut.get_transformed_image(frame)
+    grey_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)    
+
+    frame = ut.get_transformed_image(grey_frame)
     h, w = frame.shape[:2]
 
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
