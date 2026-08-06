@@ -1,3 +1,5 @@
+# Using this as a Driver of the Utility of Scratch
+
 import mediapipe as mp
 import numpy as np
 import cv2
@@ -56,22 +58,6 @@ while True:
             )
 
             print(top_left_coords, bottom_right_coords)
-
-            # cv2.rectangle(
-            #     transformed_grey,
-            #     top_left_coords,
-            #     bottom_right_coords,
-            #     (0,255,0),
-            #     2
-            # )
-
-            # cv2.rectangle(
-            #     transformed_grey,
-            #     top_right_coords,
-            #     bottom_left_coords,
-            #     (0,255,0),
-            #     2
-            # )
 
     cv2.imshow("Transformed Grey", got_frame)
 

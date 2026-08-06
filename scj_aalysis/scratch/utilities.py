@@ -1,5 +1,5 @@
 # this custom module will have all the intermediate procesing  required.
-# This is Defined inside inside FOREHEAF folder.
+# This is Defined inside inside SCRATCH folder.
 
 import cv2
 import numpy as np
@@ -105,9 +105,10 @@ def get_eyes_coordinates(grey_frame, face_landmarks):
                 │
                 └── ...
 
-            The greyscaled image will be just used to get the height and width of the image, and get the cordinates of the eyes corners, 
-            and we are modifing this greyscaled image using cv2.circle and returning the modified image with the coordinates of the eyes corners.
-            Note that ther is not code for displaying the image or any cv2.imshow() function. 
+            The greyscaled image will be just used to get the height and width of the image, and get the cordinates of the eyes
+            corners, and we are modifing this greyscaled image using cv2.circle and returning the modified image with the
+            coordinates of the eyes corners. --> (x1,y1), (x2,y2), (x3,y3), (x4,y4)
+            Note that there is not code for displaying the image or any cv2.imshow() function. 
 
             """
             
@@ -152,10 +153,11 @@ def get_eyes_coordinates(grey_frame, face_landmarks):
             cv2.rectangle(grey_frame, top_right_coords, bottom_left_coords, (255, 0, 0), 2)    #rectangle around right inner eye corner
 
 
-            return top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords, grey_frame
+            return top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords, grey_frame   # --> (x1,y1), (x2,y2), (x3,y3), (x4,y4)
 
 #######################################
 
+#OLD FUNCTION
 def get_forehead_coordinates(frame, face_landmarks, flag):
     
 
@@ -284,8 +286,9 @@ def get_nose_tip_coordinates(grey_frame, face_landmarks):
             """
             This function takes a greyscaled frame and face_landmarks of already processed rgb image(in main python file) of mediapipe face mesh
             ["for face_landmarks in results.multi_face_landmarks: "]
-            The greyscaled image will be just used to get the height and width of the image, and get the cordinates of the eyes corners, 
-            and we are modifing this greyscaled image using cv2.circle and returning the modified image with the coordinates of the eyes corners.
+            The greyscaled image will be just used to get the height and width of the image, and get the cordinates of the eyes
+            corners, and we are modifing this greyscaled image using cv2.circle and returning the modified image with the 
+            coordinates of the eyes corners.
             Note that ther is not code for displaying the image or any cv2.imshow() function. 
 
             
@@ -322,12 +325,19 @@ def get_nose_tip_coordinates(grey_frame, face_landmarks):
 ##############################################################################################
 
 def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
+    """
+    This Function will return the coordinates of the both right cheek polygon and left cheek polygon.
+    There are the lsit of corrdinates (tuple) arrying 7 (x,y) coordinates for each of 7 landmarks for left and right cheek.
+    [(103, 308), (105, 289), (106, 278), (107, 238), (98, 252), (86, 265), (88, 283)]  AND 
+    [(207, 274), (198, 259), (188, 252), (168, 217), (184, 224), (206, 227), (219, 242)]
 
-    h, w, _ = frame.shape  
+    """
+
+    h, w= frame.shape  
     LEFT_CHEEK = [
                     214, 216, 206, 120, 101, 50, 187
                 ]
-
+ 
     RIGHT_CHEEK = [
                     432, 436, 426, 349, 330, 280, 411
                 ]
@@ -398,7 +408,7 @@ def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
     # result_left = cv2.bitwise_and(frame, mask_left)
     # result_right = cv2.bitwise_and(frame, mask_right) 
 
-    return points_left, points_right      # there are the lsit of corrdinates (tuple) arrying 7 (x,y) coordinates for each of 7 landmarks for left and right cheek.
+    return points_left, points_right, frame      # there are the lsit of corrdinates (tuple) arrying 7 (x,y) coordinates for each of 7 landmarks for left and right cheek.
 
 #############################################################################################
 
@@ -406,6 +416,9 @@ def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
 
 
 def get_breathing_roi_cords(grey_frame, face_landmarks):
+    """
+    This function will return the top right and bottom left coordinates of the Breathing Box ROI --> (x1,y1), (x2,y2) and a modified grey_frame
+    """
 
     h,w = grey_frame.shape
 
@@ -460,14 +473,13 @@ def get_breathing_roi_cords(grey_frame, face_landmarks):
 #####################################################################################################################
 
 
-
-
-def get_forhead_poly_coords(grey_frame, face_landmarks):
+def get_forhead_poly_coords(grey_frame, face_landmarks):     # grey_frame need to be br RGB, becasue there is no face detection(mp.process(rgb_image))) here, it alpready happened in the main python file
     """
     This function takes the grey_frame, and face_landmark of mp, and spits out :
 
     1. polygon_points --> a List containing [x,y] coordinates of all  the Forehead polygon points.
-    Function is returning "polygon_points" which are (x, y) coordinates of all the polygon points like [[245, 98], [260, 95], [280, 92], [315, 94], [340, 99],...]
+    Function is returning "polygon_points" which are (x, y) coordinates of all the polygon points like
+    [ [245, 98], [260, 95], [280, 92], [315, 94], [340, 99],...]
 
     2. mean_pixel --> Mean of the pixel intensities(values) of the polygon ROI.
 
@@ -568,3 +580,20 @@ def get_forhead_poly_coords(grey_frame, face_landmarks):
     print(f"Average Pixel Value = {mean_pixel:.2f}")
 
     return polygon_points, mean_pixel, grey_frame        # List of lists of the coordinates of all polygon  
+
+
+#########################################################################################################################
+
+# def get_cheeks_poly_coords(grey_frame, face_landmarks):
+
+#     LEFT_CHEEK = [
+#         214, 216, 206, 120, 101, 50, 187
+#     ]
+
+#     RIGHT_CHEEK = [
+#         432, 436, 426, 349, 330, 280, 411
+#     ] 
+
+
+#     ALL_CHEEKS = LEFT_CHEEK + RIGHT_CHEEK
+
