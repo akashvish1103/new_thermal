@@ -1,8 +1,29 @@
+"""
+# Facial ROI Processing and Image Enhancement Utilities
+
+This custom module contains utility functions used for facial image
+preprocessing and region-of-interest (ROI) extraction in the SCRATCH folder.
+
+The module provides functionality for:
+- Grayscale image contrast enhancement using normalization, CLAHE,
+  gamma correction, and unsharp masking.
+- Extracting facial coordinates using MediaPipe Face Mesh landmarks.
+- Locating the inner eye corners, nose tip, cheeks, forehead, and
+  breathing-related nasal ROI.
+- Creating and visualizing facial ROI boundaries and polygons.
+- Calculating mean pixel intensity values from selected facial ROIs.
+
+The module is designed to be imported by the main analysis scripts,
+where MediaPipe face detection/landmark processing is performed.
+"""
+
+
 # this custom module will have all the intermediate procesing  required.
-# This is Defined inside inside SCRATCH folder.
+# This is Defined inside inside SCRATCH folder of root folder "scj_analysis"
 
 import cv2
 import numpy as np
+
 # ============================================================
 # CLAHE (Create Once)
 # ============================================================
@@ -54,7 +75,7 @@ def get_transformed_image(grey_frame):
 
     sharpened_grey_frame = cv2.addWeighted(                        # sharpened the edges
     gamma_corrected,
-    2,
+    2,                                                    # Make it larger for more sharpened image
     blurred,
     -1.5,
     0
@@ -64,7 +85,7 @@ def get_transformed_image(grey_frame):
 
 
 
-################################################################################
+###########################################################################################################
 
 
 def get_mp_setup():
@@ -74,7 +95,7 @@ def get_mp_setup():
         pass
 
 
-
+#######################################################################################################################
 
 
 def get_eyes_coordinates(grey_frame, face_landmarks): 
@@ -156,11 +177,10 @@ def get_eyes_coordinates(grey_frame, face_landmarks):
             return top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords, grey_frame   # --> (x1,y1), (x2,y2), (x3,y3), (x4,y4)
 
 #######################################
-
-#OLD FUNCTION
+ 
+#OLD FUNCTION (Depreciated!!) (We will not going to use this Funtion)
 def get_forehead_coordinates(frame, face_landmarks, flag):
     
-
     FOREHEAD_POINTS = [
     67,
     297,
@@ -324,7 +344,7 @@ def get_nose_tip_coordinates(grey_frame, face_landmarks):
 
 ##############################################################################################
 
-def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
+def get_cheeks_coordinates(frame, face_landmarks, points_left_lst, points_right_lst):
     """
     This Function will return the coordinates of the both right cheek polygon and left cheek polygon.
     There are the lsit of corrdinates (tuple) arrying 7 (x,y) coordinates for each of 7 landmarks for left and right cheek.
@@ -353,9 +373,9 @@ def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
                 y = int(lm.y * h)
 
                 if idx in LEFT_CHEEK:
-                    points_left.append((x, y))
+                    points_left_lst.append((x, y))
                 elif idx in RIGHT_CHEEK:
-                    points_right.append((x, y))
+                    points_right_lst.append((x, y))
 
 
                 # CV2.CIRCLE is modifyng the image array (Just changing, not DISPLAYING)
@@ -373,8 +393,8 @@ def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
                     1
                 )
 
-    polygon_left = np.array(points_left, dtype=np.int32)
-    polygon_right = np.array(points_right, dtype=np.int32)
+    polygon_left = np.array(points_left_lst, dtype=np.int32)
+    polygon_right = np.array(points_right_lst, dtype=np.int32)
                 # -----------------------------
                 # Create empty mask
                 # -----------------------------
@@ -408,7 +428,7 @@ def get_cheeks_coordinates(frame, face_landmarks, points_left, points_right):
     # result_left = cv2.bitwise_and(frame, mask_left)
     # result_right = cv2.bitwise_and(frame, mask_right) 
 
-    return points_left, points_right, frame      # there are the lsit of corrdinates (tuple) arrying 7 (x,y) coordinates for each of 7 landmarks for left and right cheek.
+    return points_left_lst, points_right_lst, frame      # there are the lsit of corrdinates (tuple) arrying 7 (x,y) coordinates for each of 7 landmarks for left and right cheek.
 
 #############################################################################################
 
@@ -460,8 +480,8 @@ def get_breathing_roi_cords(grey_frame, face_landmarks):
     cv2.rectangle(grey_frame, (left_margin, top_margin),
                           (right_margin, bottom_margin), (255, 255, 255), 1)
 
-    cv2.circle(grey_frame, (left_margin, top_margin), 5, (255, 255, 255), -5)
-    cv2.circle(grey_frame, (right_margin, bottom_margin), 3, (0, 0, 0), -5) 
+    cv2.circle(grey_frame, (left_margin, top_margin), 2, (0, 0, 0), -5)
+    cv2.circle(grey_frame, (right_margin, bottom_margin), 2, (0, 0, 0), -5) 
 
     top_left_cords = (left_margin, top_margin)              # Coordinates of the top left point of the ROI Box that will be used for breathing pattern
     bottom_right_cords = (right_margin, bottom_margin)      # Coordinates of the bottom point of the ROI Box that will be used for breathing pattern
@@ -584,16 +604,15 @@ def get_forhead_poly_coords(grey_frame, face_landmarks):     # grey_frame need t
 
 #########################################################################################################################
 
-# def get_cheeks_poly_coords(grey_frame, face_landmarks):
 
-#     LEFT_CHEEK = [
-#         214, 216, 206, 120, 101, 50, 187
-#     ]
+# Function to get mean temperature for the given numpy array(roi_image single channel image in this case)
+def get_mean_of_ROI(roi_numpy_array):
 
-#     RIGHT_CHEEK = [
-#         432, 436, 426, 349, 330, 280, 411
-#     ] 
+    return round(np.mean(roi_numpy_array), 2)
 
 
-#     ALL_CHEEKS = LEFT_CHEEK + RIGHT_CHEEK
+########################################################################################################################################
 
+
+
+        

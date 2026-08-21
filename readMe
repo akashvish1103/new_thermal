@@ -3,6 +3,7 @@ For clipping RGB/Thermal video : loading_vid.py
 
 FileName : utility_linear_mapping.py ----> It contains the code to get the temperature from pixel ,that's all.
 
+Bird's eye view
 
 Original Frame (BGR)
         │

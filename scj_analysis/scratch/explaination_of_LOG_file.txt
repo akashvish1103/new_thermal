@@ -1,0 +1,41 @@
+Good news first: the values look physically sane — temps sitting in the 34–38°C range across all ROIs,
+ which is right for facial skin, so the calibration and pixel→temp mapping is working as expected.
+
+Here's what each column means, grouped by type:
+
+Frame-level columns (once per row)
+
+Column	Meaning
+frame_number	Sequential frame index, starting at 0
+time_sec	frame_number / fps — elapsed time into the video
+face_detected	Whether MediaPipe found a face this frame. True in every row here, which is a 
+good sign — no tracking drop-outs in this segment
+
+Per-ROI columns (repeated 6× — breathing, forehead, cheek_L, cheek_R, eye_L, eye_R, nose)
+
+Using forehead_* as the example, each ROI gets this same set:
+
+Suffix	Meaning
+_count	Number of pixels inside that ROI this frame — i.e. the ROI's area. Useful as a sanity check: a sudden drop 
+(e.g. forehead_count falling from ~5800 to a few hundred) usually means the ROI got clipped or landmarks jumped
+_mean_px	Average raw grayscale pixel intensity (0–255) inside the ROI, from the original unenhanced frame
+_std_px	Standard deviation of pixel intensity — how much variation/texture is inside the ROI (higher = noisier or 
+covers more varied tissue)
+_min_px / _max_px	Coldest/hottest raw pixel value in the ROI
+_median_px	Median pixel intensity — more robust to outlier hot/cold pixels than the mean
+_mean_temp	Mean pixel value converted to °C via your linear calibration — the main number you'll care about
+_std_temp, _min_temp, _max_temp, _median_temp	Same statistics as above, but in °C instead of raw pixel units
+_delta_temp_from_baseline	mean_temp minus that ROI's mean_temp on the first frame it was detected (frame 0 here,
+ so all baselines = 0.0 at row 1). Positive = warmer than baseline, negative = cooler — this is the column to watch 
+ for stress-response trends over the interrogation
+
+A few things I notice looking at your actual data:
+
+breathing_count fluctuates a fair bit frame-to-frame (3969 → 4717 → 4165...) even though the person presumably isn't 
+moving much — that's consistent with the jitter we smoothed earlier; it's the ROI box size responding slightly to 
+residual landmark noise.
+eye_L_count / eye_R_count are fixed at 400 every single row — makes sense, since that ROI is a fixed 20×20 pixel 
+box (lx to lx+20, ly-10 to ly+10) by construction in utilities.py, not landmark-area-dependent.
+cheek_R_delta_temp_from_baseline swings fairly widely (e.g. down to -1.42, -1.5 in early frames) — worth a look at whether
+ that's genuine skin temperature change or ROI drift onto a different area; cross-checking against cheek_R_count in those 
+ same rows would tell you which.
