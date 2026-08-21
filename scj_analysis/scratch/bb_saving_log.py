@@ -1,0 +1,1359 @@
+# This Code works fine, Time Duration issue solved...
+# Solved jitter ROI issue
+# Use this ONLY for Saving the ROI LOG file
+# Final Code by Akash V.
+
+
+import os
+import csv
+import subprocess
+import tempfile
+
+import mediapipe as mp
+import numpy as np
+import cv2
+
+import utilities as ut
+import utility_linear_mapping as ulm
+
+
+# ============================================================
+# VIDEO PATH
+# ============================================================
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal.mpg"
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_30_40.mpg"
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_wmv_30_40.wmv"
+
+# video_path = r"D:\2026-08-20_Thermal_Meditation\TopInfrared\4.mp4"
+
+video_path = r"D:\000_ofc_thermalData\sorted_data\48\48_HDRS_Thermal_30_40.mpg"
+video_path = r"D:\000_ofc_thermalData\sorted_data\48\48_Passive_Thermal_30_40.mpg"
+
+# ============================================================
+# CSV LOG FILE
+#
+# The log is saved next to the ORIGINAL input video.
+#
+# Example:
+#
+#   48_HDRS_Thermal_30_40.mpg
+#              ↓
+#   48_HDRS_Thermal_30_40_log_stats.csv
+#
+# The temporary FFmpeg MP4 is NEVER used to name the log.
+# ============================================================
+
+video_filename_without_extension = os.path.splitext(
+    os.path.basename(video_path)
+)[0]
+
+LOG_PATH = os.path.join(
+    os.path.dirname(video_path),
+    video_filename_without_extension + "_log_stats.csv"
+)
+
+
+# ============================================================
+# FFmpeg conversion settings
+# ============================================================
+
+# FFmpeg must be available from the command line.
+#
+# You already verified:
+#
+#     ffmpeg -version
+#
+# works on your system.
+
+FFMPEG_EXE = r"C:\ffmpeg-2026-08-20-git-7d77562d2a-essentials_build\bin\ffmpeg.exe"
+
+
+# ============================================================
+# Convert MPG to temporary MP4
+# ============================================================
+
+def convert_to_mp4(input_video):
+
+    """
+    Convert the input video to a temporary MP4 using FFmpeg.
+
+    The original video is NOT modified.
+
+    Returns:
+        path to temporary MP4
+    """
+
+    # --------------------------------------------------------
+    # Check that input exists
+    # --------------------------------------------------------
+
+    if not os.path.isfile(input_video):
+
+        raise FileNotFoundError(
+            f"Input video does not exist:\n{input_video}"
+        )
+
+
+    # --------------------------------------------------------
+    # Create temporary MP4 filename
+    #
+    # delete=False because OpenCV needs to open the file after
+    # FFmpeg finishes creating it.
+    # --------------------------------------------------------
+
+    temp_file = tempfile.NamedTemporaryFile(
+        suffix=".mp4",
+        delete=False
+    )
+
+    temp_mp4 = temp_file.name
+
+    temp_file.close()
+
+
+    # --------------------------------------------------------
+    # FFmpeg command
+    #
+    # -y
+    #     overwrite temporary file if necessary
+    #
+    # -i
+    #     input video
+    #
+    # -c:v libx264
+    #     encode video as H.264
+    #
+    # -pix_fmt yuv420p
+    #     standard pixel format supported well by OpenCV
+    #
+    # -vsync 0
+    #     do not duplicate/drop frames unnecessarily
+    #
+    # -an
+    #     no audio; your analysis is video-only
+    #
+    # --------------------------------------------------------
+
+    command = [
+    FFMPEG_EXE,
+    "-y",
+    "-i",
+    input_video,
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-an",
+    temp_mp4
+]
+
+    print("=" * 70)
+    print("CONVERTING INPUT VIDEO USING FFMPEG")
+    print("=" * 70)
+
+    print("Input:")
+    print(input_video)
+
+    print()
+    print("Temporary MP4:")
+    print(temp_mp4)
+
+    print("=" * 70)
+
+
+    # --------------------------------------------------------
+    # Run FFmpeg
+    #
+    # stdout/stderr are inherited so FFmpeg progress/errors
+    # can be seen in the console.
+    # --------------------------------------------------------
+
+    try:
+
+        subprocess.run(
+            command,
+            check=True
+        )
+
+    except FileNotFoundError:
+
+        # ----------------------------------------------------
+        # FFmpeg itself could not be found
+        # ----------------------------------------------------
+
+        if os.path.exists(temp_mp4):
+
+            os.remove(temp_mp4)
+
+        raise RuntimeError(
+            "FFmpeg was not found.\n\n"
+            "Open a new Command Prompt and verify:\n\n"
+            "    ffmpeg -version\n\n"
+            "FFmpeg must be available in PATH."
+        )
+
+    except subprocess.CalledProcessError as e:
+
+        # ----------------------------------------------------
+        # FFmpeg returned an error
+        # ----------------------------------------------------
+
+        if os.path.exists(temp_mp4):
+
+            os.remove(temp_mp4)
+
+        raise RuntimeError(
+            f"FFmpeg conversion failed with exit code "
+            f"{e.returncode}."
+        )
+
+
+    # --------------------------------------------------------
+    # Verify that the output file actually exists
+    # --------------------------------------------------------
+
+    if not os.path.isfile(temp_mp4):
+
+        raise RuntimeError(
+            "FFmpeg finished, but the temporary MP4 "
+            "was not created."
+        )
+
+
+    print()
+    print("FFmpeg conversion completed successfully.")
+    print("=" * 70)
+
+
+    return temp_mp4
+
+
+# ============================================================
+# Determine whether conversion is necessary
+# ============================================================
+
+input_extension = os.path.splitext(
+    video_path
+)[1].lower()
+
+
+temporary_video = None
+
+
+if input_extension in [
+    ".mpg",
+    ".mpeg",
+    ".mpv"
+]:
+
+    # --------------------------------------------------------
+    # Your thermal MPEG video
+    #
+    # Convert it automatically before OpenCV processing.
+    # --------------------------------------------------------
+
+    temporary_video = convert_to_mp4(
+        video_path
+    )
+
+    processing_video_path = temporary_video
+
+
+else:
+
+    # --------------------------------------------------------
+    # For MP4 / other formats, process directly.
+    # --------------------------------------------------------
+
+    processing_video_path = video_path
+
+
+# ============================================================
+# MediaPipe Face Mesh Setup
+# ============================================================
+
+mp_face_mesh = mp.solutions.face_mesh
+
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=False,
+    max_num_faces=1,
+    refine_landmarks=True,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
+
+
+# ============================================================
+# Landmark definitions
+# ============================================================
+
+UPPER_LIPS_LANDMARK = [13, 206, 426]
+
+NOSE_HORIZONTAL_LANDMARKS = [64, 278]
+
+NOSE_VERTICAL_LANDMARKS = [4, 94]
+
+NOSE_LANDMARKS = (
+    NOSE_HORIZONTAL_LANDMARKS
+    + NOSE_VERTICAL_LANDMARKS
+    + UPPER_LIPS_LANDMARK
+)
+
+
+# ============================================================
+# EMA Landmark Smoother
+# ============================================================
+
+class LandmarkEMASmoother:
+
+    def __init__(
+        self,
+        alpha=0.4,
+        num_landmarks=478
+    ):
+
+        self.alpha = alpha
+
+        self.num_landmarks = num_landmarks
+
+        # Previous smoothed landmark coordinates
+        #
+        # Shape:
+        #
+        #     (num_landmarks, 3)
+        #
+        # where 3 = x, y, z
+
+        self.prev = None
+
+
+    def smooth(self, face_landmarks):
+
+        """
+        Apply EMA to every MediaPipe landmark.
+
+        Formula:
+
+            smoothed =
+                alpha * raw
+                +
+                (1 - alpha) * previous_smoothed
+        """
+
+        # ----------------------------------------------------
+        # Convert MediaPipe landmarks to NumPy array
+        # ----------------------------------------------------
+
+        raw = np.array(
+            [
+                [lm.x, lm.y, lm.z]
+                for lm in face_landmarks.landmark
+            ],
+            dtype=np.float64
+        )
+
+
+        # ----------------------------------------------------
+        # First frame / no history
+        # ----------------------------------------------------
+
+        if (
+            self.prev is None
+            or self.prev.shape != raw.shape
+        ):
+
+            self.prev = raw.copy()
+
+
+        # ----------------------------------------------------
+        # Subsequent frames
+        # ----------------------------------------------------
+
+        else:
+
+            self.prev = (
+                self.alpha * raw
+                +
+                (1.0 - self.alpha) * self.prev
+            )
+
+
+        # ----------------------------------------------------
+        # Put smoothed coordinates back into MediaPipe object
+        # ----------------------------------------------------
+
+        for i, lm in enumerate(
+            face_landmarks.landmark
+        ):
+
+            lm.x = float(
+                self.prev[i, 0]
+            )
+
+            lm.y = float(
+                self.prev[i, 1]
+            )
+
+            lm.z = float(
+                self.prev[i, 2]
+            )
+
+
+        return face_landmarks
+
+
+    def reset(self):
+
+        """
+        Reset EMA history.
+
+        Called when no face is detected.
+
+        This prevents the next detected face from being
+        blended with the previous face.
+        """
+
+        self.prev = None
+
+
+# ============================================================
+# Create EMA smoother
+# ============================================================
+
+landmark_smoother = LandmarkEMASmoother(
+    alpha=0.4
+)
+
+
+# ============================================================
+# Open converted video with OpenCV
+# ============================================================
+
+cap = cv2.VideoCapture(
+    processing_video_path
+)
+
+
+# ============================================================
+# Check video opening
+# ============================================================
+
+if not cap.isOpened():
+
+    face_mesh.close()
+
+    if temporary_video is not None:
+        os.remove(temporary_video)
+
+    raise RuntimeError(
+        "OpenCV could not open the video:\n"
+        f"{processing_video_path}"
+    )
+
+
+# ============================================================
+# VIDEO INFORMATION
+# ============================================================
+
+fps = cap.get(
+    cv2.CAP_PROP_FPS
+)
+
+total_frames = cap.get(
+    cv2.CAP_PROP_FRAME_COUNT
+)
+
+
+# ------------------------------------------------------------
+# Check FPS
+# ------------------------------------------------------------
+
+if fps <= 0:
+
+    cap.release()
+    face_mesh.close()
+
+    if temporary_video is not None:
+        os.remove(temporary_video)
+
+    raise RuntimeError(
+        "Could not determine video FPS."
+    )
+
+
+# ============================================================
+# Calculate video duration
+# ============================================================
+
+total_duration_seconds = (
+    total_frames / fps
+)
+
+
+total_minutes = int(
+    total_duration_seconds // 60
+)
+
+total_seconds = (
+    total_duration_seconds % 60
+)
+
+
+total_duration = (
+    f"{total_minutes:02d}:"
+    f"{total_seconds:05.2f}"
+)
+
+
+# ============================================================
+# Print video information
+# ============================================================
+
+print()
+print("=" * 70)
+print("VIDEO INFORMATION USED BY OPENCV")
+print("=" * 70)
+
+print(
+    f"Processing video: "
+    f"{processing_video_path}"
+)
+
+print(
+    f"FPS: {fps}"
+)
+
+print(
+    f"Total Frames: {total_frames}"
+)
+
+print(
+    f"Calculated Duration: "
+    f"{total_duration}"
+)
+
+print("=" * 70)
+
+
+
+# ============================================================
+# ROI LOGGING SETTINGS
+# ============================================================
+
+ROI_NAMES = [
+    "breathing",
+    "forehead",
+    "cheek_L",
+    "cheek_R",
+    "eye_L",
+    "eye_R",
+    "nose"
+]
+
+STAT_NAMES = [
+    "count",
+    "mean_px",
+    "std_px",
+    "min_px",
+    "max_px",
+    "median_px",
+    "mean_temp",
+    "std_temp",
+    "min_temp",
+    "max_temp",
+    "median_temp",
+    "delta_temp_from_baseline"
+]
+
+
+def extract_roi_pixels(image, shape_type, geometry):
+    """
+    Extract RAW grayscale pixels belonging to an ROI.
+
+    shape_type:
+        "box"      -> geometry = (top_left, bottom_right)
+        "polygon"  -> geometry = list of (x, y)
+    """
+
+    height, width = image.shape[:2]
+
+    if shape_type == "box":
+
+        top_left, bottom_right = geometry
+
+        x1 = int(top_left[0])
+        y1 = int(top_left[1])
+        x2 = int(bottom_right[0])
+        y2 = int(bottom_right[1])
+
+        # Keep ROI inside image boundaries.
+        x1 = max(0, min(x1, width))
+        x2 = max(0, min(x2, width))
+        y1 = max(0, min(y1, height))
+        y2 = max(0, min(y2, height))
+
+        x1, x2 = sorted((x1, x2))
+        y1, y2 = sorted((y1, y2))
+
+        if x2 <= x1 or y2 <= y1:
+            return np.array([], dtype=image.dtype)
+
+        return image[y1:y2, x1:x2].flatten()
+
+    elif shape_type == "polygon":
+
+        points = np.array(
+            [[int(p[0]), int(p[1])] for p in geometry],
+            dtype=np.int32
+        )
+
+        if len(points) < 3:
+            return np.array([], dtype=image.dtype)
+
+        mask = np.zeros(
+            (height, width),
+            dtype=np.uint8
+        )
+
+        cv2.fillPoly(
+            mask,
+            [points],
+            255
+        )
+
+        return image[mask == 255].flatten()
+
+    else:
+        raise ValueError(
+            f"Unknown ROI shape type: {shape_type}"
+        )
+
+
+def calculate_roi_stats(
+    pixels,
+    min_temp,
+    max_temp,
+    first_pixel,
+    last_pixel
+):
+    """
+    Calculate pixel statistics and corresponding
+    temperature statistics for one ROI.
+    """
+
+    if pixels.size == 0:
+        return {
+            "count": 0,
+            "mean_px": np.nan,
+            "std_px": np.nan,
+            "min_px": np.nan,
+            "max_px": np.nan,
+            "median_px": np.nan,
+            "mean_temp": np.nan,
+            "std_temp": np.nan,
+            "min_temp": np.nan,
+            "max_temp": np.nan,
+            "median_temp": np.nan
+        }
+
+    px = pixels.astype(np.float64)
+
+    temp = ulm.map_pixel_to_temperature(
+        px,
+        min_temp,
+        max_temp,
+        first_pixel,
+        last_pixel
+    )
+
+    temp = np.asarray(temp, dtype=np.float64)
+
+    return {
+        "count": int(px.size),
+
+        "mean_px": float(np.mean(px)),
+        "std_px": float(np.std(px)),
+        "min_px": float(np.min(px)),
+        "max_px": float(np.max(px)),
+        "median_px": float(np.median(px)),
+
+        "mean_temp": float(np.mean(temp)),
+        "std_temp": float(np.std(temp)),
+        "min_temp": float(np.min(temp)),
+        "max_temp": float(np.max(temp)),
+        "median_temp": float(np.median(temp))
+    }
+
+
+# ============================================================
+# CALIBRATION FOR TEMPERATURE LOGGING
+#
+# This uses the ORIGINAL thermal video path, not the temporary
+# FFmpeg MP4. Therefore the original thermal calibration
+# information remains unchanged.
+# ============================================================
+
+print()
+print("=" * 70)
+print("PREPARING TEMPERATURE CALIBRATION FOR CSV LOG")
+print("=" * 70)
+
+pixel_column = ulm.get_one_pixel_column(video_path)
+
+(
+    min_temp,
+    max_temp,
+    first_pixel,
+    last_pixel
+) = ulm.get_first_last_element_from_OnePixelColumn_AND_min_max_from_filename(
+    pixel_column,
+    video_path
+)
+
+print(f"Temperature range: {min_temp} - {max_temp} °C")
+print(f"First calibration pixel: {first_pixel}")
+print(f"Last calibration pixel: {last_pixel}")
+print("=" * 70)
+
+
+# ============================================================
+# BASELINE TEMPERATURE
+#
+# First valid mean temperature for each ROI becomes its
+# baseline. Subsequent rows contain:
+#
+# current_mean_temp - baseline_mean_temp
+# ============================================================
+
+roi_baseline_temp = {
+    roi: None
+    for roi in ROI_NAMES
+}
+
+
+# ============================================================
+# CSV COLUMNS
+# ============================================================
+
+CSV_FIELDNAMES = [
+    "frame_number",
+    "time_sec",
+    "video_time",
+    "face_detected"
+]
+
+for roi in ROI_NAMES:
+    for stat in STAT_NAMES:
+        CSV_FIELDNAMES.append(
+            f"{roi}_{stat}"
+        )
+
+
+# ============================================================
+# OPEN CSV LOG
+# ============================================================
+
+print()
+print("=" * 70)
+print("CSV LOG")
+print("=" * 70)
+print(f"Saving statistics to:")
+print(LOG_PATH)
+print("=" * 70)
+
+log_file = open(
+    LOG_PATH,
+    "w",
+    newline="",
+    encoding="utf-8"
+)
+
+csv_writer = csv.DictWriter(
+    log_file,
+    fieldnames=CSV_FIELDNAMES
+)
+
+csv_writer.writeheader()
+
+
+# ============================================================
+# Main Video Loop
+# ============================================================
+
+frame_number = 0
+
+video_time = "00:00.00"
+
+
+try:
+
+    while True:
+
+        # ========================================================
+        # Read next frame
+        # ========================================================
+
+        ret, frame = cap.read()
+
+        # ========================================================
+        # End of video
+        # ========================================================
+
+        if not ret:
+
+            print()
+            print("=" * 70)
+            print("VIDEO READ ENDED")
+            print(f"Last readable frame: {frame_number}")
+            print(f"Last video time: {video_time}")
+            print("=" * 70)
+
+            break
+
+        # ========================================================
+        # Increment frame number
+        # ========================================================
+
+        frame_number += 1
+
+        # ========================================================
+        # INPUT VIDEO TIME
+        #
+        # IMPORTANT:
+        #
+        # Keep this exactly based on the FPS of the converted
+        # processing video. This preserves the video-duration
+        # behavior that solved the previous MPEG cut problem.
+        # ========================================================
+
+        video_time_seconds = (
+            frame_number / fps
+        )
+
+        minutes = int(
+            video_time_seconds // 60
+        )
+
+        seconds = (
+            video_time_seconds % 60
+        )
+
+        video_time = (
+            f"{minutes:02d}:"
+            f"{seconds:05.2f}"
+        )
+
+        # ========================================================
+        # Start a blank CSV row.
+        #
+        # Even when NO FACE is detected, this row will still be
+        # written. ROI values remain blank.
+        # ========================================================
+
+        row = {
+            "frame_number": frame_number,
+            "time_sec": round(video_time_seconds, 3),
+            "video_time": video_time,
+            "face_detected": False
+        }
+
+        for roi in ROI_NAMES:
+            for stat in STAT_NAMES:
+                row[f"{roi}_{stat}"] = ""
+
+        # ========================================================
+        # Convert BGR → Grayscale
+        # ========================================================
+
+        grey = cv2.cvtColor(
+            frame,
+            cv2.COLOR_BGR2GRAY
+        )
+
+        # ========================================================
+        # Apply your existing transformation pipeline
+        # ========================================================
+
+        transformed_grey = (
+            ut.get_transformed_image(grey)
+        )
+
+        # ========================================================
+        # IMPORTANT:
+        #
+        # got_frame is initialized before face detection.
+        # Therefore no-face frames cannot cause a NameError.
+        # ========================================================
+
+        got_frame = transformed_grey.copy()
+
+        # ========================================================
+        # OPTIONAL 90° ROTATION
+        # ========================================================
+
+        # transformed_grey = cv2.rotate(
+        #     transformed_grey,
+        #     cv2.ROTATE_90_CLOCKWISE
+        # )
+
+        # ========================================================
+        # MediaPipe expects 3 channels
+        # ========================================================
+
+        rgb = cv2.cvtColor(
+            transformed_grey,
+            cv2.COLOR_GRAY2BGR
+        )
+
+        # ========================================================
+        # MediaPipe Face Mesh
+        # ========================================================
+
+        results = face_mesh.process(rgb)
+
+        # ========================================================
+        # FACE DETECTED
+        # ========================================================
+
+        if results.multi_face_landmarks:
+
+            row["face_detected"] = True
+
+            for face_landmarks in results.multi_face_landmarks:
+
+                # ==================================================
+                # EMA LANDMARK SMOOTHING
+                # ==================================================
+
+                face_landmarks = (
+                    landmark_smoother.smooth(
+                        face_landmarks
+                    )
+                )
+
+                # ==================================================
+                # BREATHING ROI
+                # ==================================================
+
+                (
+                    top_left_cords,
+                    bottom_right_cords,
+                    got_frame
+                ) = ut.get_breathing_roi_cords(
+                    transformed_grey,
+                    face_landmarks
+                )
+
+                # ==================================================
+                # FOREHEAD ROI
+                # ==================================================
+
+                (
+                    polygon_points,
+                    mean_pixel,
+                    got_frame
+                ) = ut.get_forhead_poly_coords(
+                    transformed_grey,
+                    face_landmarks
+                )
+
+                # ==================================================
+                # CHEEKS ROI
+                # ==================================================
+
+                (
+                    l,
+                    r,
+                    got_frame
+                ) = ut.get_cheeks_coordinates(
+                    transformed_grey,
+                    face_landmarks,
+                    [],
+                    []
+                )
+
+                # ==================================================
+                # EYES ROI
+                # ==================================================
+
+                (
+                    top_left_coords,
+                    bottom_right_coords,
+                    top_right_coords,
+                    bottom_left_coords,
+                    got_frame
+                ) = ut.get_eyes_coordinates(
+                    transformed_grey,
+                    face_landmarks
+                )
+
+                # ==================================================
+                # NOSE TIP ROI
+                # ==================================================
+
+                (
+                    nose_top_left,
+                    nose_bottom_right,
+                    got_frame
+                ) = ut.get_nose_tip_coordinates(
+                    transformed_grey,
+                    face_landmarks
+                )
+
+                # ==================================================
+                # Define ROI geometries
+                #
+                # IMPORTANT:
+                #
+                # Coordinates are generated exactly as before
+                # using utilities.py.
+                #
+                # Pixel extraction is performed on RAW 'grey',
+                # NOT transformed_grey.
+                # ==================================================
+
+                roi_geometries = {
+
+                    "breathing": (
+                        "box",
+                        (
+                            top_left_cords,
+                            bottom_right_cords
+                        )
+                    ),
+
+                    "forehead": (
+                        "polygon",
+                        polygon_points
+                    ),
+
+                    "cheek_L": (
+                        "polygon",
+                        l
+                    ),
+
+                    "cheek_R": (
+                        "polygon",
+                        r
+                    ),
+
+                    "eye_L": (
+                        "box",
+                        (
+                            top_left_coords,
+                            bottom_right_coords
+                        )
+                    ),
+
+                    "eye_R": (
+                        "box",
+                        (
+                            top_right_coords,
+                            bottom_left_coords
+                        )
+                    ),
+
+                    "nose": (
+                        "box",
+                        (
+                            nose_top_left,
+                            nose_bottom_right
+                        )
+                    )
+                }
+
+                # ==================================================
+                # Calculate statistics for every ROI
+                # ==================================================
+
+                for (
+                    roi_name,
+                    (
+                        shape_type,
+                        geometry
+                    )
+                ) in roi_geometries.items():
+
+                    # ------------------------------------------------
+                    # RAW grayscale thermal pixels
+                    #
+                    # Do NOT use transformed_grey here.
+                    # ------------------------------------------------
+
+                    pixels = extract_roi_pixels(
+                        grey,
+                        shape_type,
+                        geometry
+                    )
+
+                    stats = calculate_roi_stats(
+                        pixels,
+                        min_temp,
+                        max_temp,
+                        first_pixel,
+                        last_pixel
+                    )
+
+                    # ------------------------------------------------
+                    # Establish baseline
+                    # ------------------------------------------------
+
+                    if (
+                        roi_baseline_temp[roi_name]
+                        is None
+                        and
+                        not np.isnan(
+                            stats["mean_temp"]
+                        )
+                    ):
+
+                        roi_baseline_temp[roi_name] = (
+                            stats["mean_temp"]
+                        )
+
+                    baseline = (
+                        roi_baseline_temp[roi_name]
+                    )
+
+                    # ------------------------------------------------
+                    # Temperature change from baseline
+                    # ------------------------------------------------
+
+                    if (
+                        baseline is not None
+                        and
+                        not np.isnan(
+                            stats["mean_temp"]
+                        )
+                    ):
+
+                        delta_temp = (
+                            stats["mean_temp"]
+                            -
+                            baseline
+                        )
+
+                    else:
+
+                        delta_temp = np.nan
+
+                    # ------------------------------------------------
+                    # Store statistics in CSV row
+                    # ------------------------------------------------
+
+                    for stat in [
+                        "count",
+                        "mean_px",
+                        "std_px",
+                        "min_px",
+                        "max_px",
+                        "median_px",
+                        "mean_temp",
+                        "std_temp",
+                        "min_temp",
+                        "max_temp",
+                        "median_temp"
+                    ]:
+
+                        value = stats[stat]
+
+                        if (
+                            isinstance(value, float)
+                            and np.isnan(value)
+                        ):
+
+                            row[
+                                f"{roi_name}_{stat}"
+                            ] = ""
+
+                        elif isinstance(value, float):
+
+                            row[
+                                f"{roi_name}_{stat}"
+                            ] = round(
+                                value,
+                                4
+                            )
+
+                        else:
+
+                            row[
+                                f"{roi_name}_{stat}"
+                            ] = value
+
+                    if np.isnan(delta_temp):
+
+                        row[
+                            f"{roi_name}_delta_temp_from_baseline"
+                        ] = ""
+
+                    else:
+
+                        row[
+                            f"{roi_name}_delta_temp_from_baseline"
+                        ] = round(
+                            delta_temp,
+                            4
+                        )
+
+                # ==================================================
+                # Console summary
+                # ==================================================
+
+                print(
+                    f"Frame: {frame_number} | "
+                    f"Video Time: {video_time} | "
+                    f"Nose Mean Temp: "
+                    f"{row['nose_mean_temp']} | "
+                    f"Forehead Mean Temp: "
+                    f"{row['forehead_mean_temp']}"
+                )
+
+        # ========================================================
+        # NO FACE DETECTED
+        # ========================================================
+
+        else:
+
+            # ----------------------------------------------------
+            # Reset EMA history.
+            # ----------------------------------------------------
+
+            landmark_smoother.reset()
+
+            print(
+                f"Frame: {frame_number} | "
+                f"Video Time: {video_time} | "
+                f"No face detected"
+            )
+
+        # ========================================================
+        # WRITE THIS FRAME TO CSV
+        #
+        # This happens whether a face was detected or not.
+        # ========================================================
+
+        csv_writer.writerow(row)
+
+        # --------------------------------------------------------
+        # Flush periodically.
+        # --------------------------------------------------------
+
+        if frame_number % 100 == 0:
+            log_file.flush()
+
+        # ========================================================
+        # Add VIDEO TIME to displayed transformed image
+        # ========================================================
+
+        cv2.putText(
+            got_frame,
+            f"Video Time: {video_time}",
+            (20, 40),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            255,
+            2,
+            cv2.LINE_AA
+        )
+
+        # ========================================================
+        # DISPLAY TRANSFORMED GREY
+        # ========================================================
+
+        cv2.imshow(
+            "Transformed Grey",
+            got_frame
+        )
+
+        # ========================================================
+        # DISPLAY ORIGINAL FRAME
+        # ========================================================
+
+        cv2.imshow(
+            "RGB framea",
+            frame
+        )
+
+        # ========================================================
+        # Press Q to quit
+        # ========================================================
+
+        if (
+            cv2.waitKey(1) & 0xFF
+            == ord("q")
+        ):
+
+            print()
+            print("Processing stopped by user.")
+
+            break
+
+finally:
+
+    # ========================================================
+    # Always flush and close CSV
+    # ========================================================
+
+    log_file.flush()
+    log_file.close()
+
+# ============================================================
+# CLEANUP
+# ============================================================
+
+cap.release()
+
+face_mesh.close()
+
+cv2.destroyAllWindows()
+
+
+# ============================================================
+# DELETE TEMPORARY MP4
+# ============================================================
+
+if temporary_video is not None:
+
+    try:
+
+        os.remove(
+            temporary_video
+        )
+
+        print()
+        print(
+            "Temporary converted MP4 deleted."
+        )
+
+    except OSError as e:
+
+        print()
+        print(
+            "WARNING: Could not delete "
+            "temporary MP4:"
+        )
+
+        print(
+            temporary_video
+        )
+
+        print(e)
+
+
+# ============================================================
+# DONE
+# ============================================================
+
+print()
+print("=" * 70)
+print("PROCESSING COMPLETE")
+print()
+print("ROI statistics log saved to:")
+print(LOG_PATH)
+print("=" * 70)

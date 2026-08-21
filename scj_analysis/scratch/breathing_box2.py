@@ -1,6 +1,179 @@
-# Removed the Jitter ROI and make it SMOOTH using EMA (Exponentail Moving Average)
+# # Removed the Jitter ROI and make it SMOOTH using EMA (Exponentail Moving Average)
+# # Using this as a Driver of the Utility of Scratch
+# # this file using all the ROI from uitlity code
+
+# import mediapipe as mp
+# import numpy as np
+# import cv2
+# import utilities as ut
+
+
+# # video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal.mpg"
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_30_40.mpg"
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_wmv_30_40.wmv"
+# # video_path = r"D:\2026-08-20_Thermal_Meditation\TopInfrared\4.mp4"
+# video_path = r"D:\000_ofc_thermalData\sorted_data\61\61_HDRS_Thermal_30_40.mpg"
+
+# # ============================================================
+# # MediaPipe Face Mesh Setup
+# # ============================================================
+
+# mp_face_mesh = mp.solutions.face_mesh
+
+# face_mesh = mp_face_mesh.FaceMesh(
+#     static_image_mode=False,
+#     max_num_faces=1,
+#     refine_landmarks=True,
+#     min_detection_confidence=0.5,
+#     min_tracking_confidence=0.5
+# )
+
+# UPPER_LIPS_LANDMARK       = [13, 206, 426]
+# NOSE_HORIZONTAL_LANDMARKS = [64, 278]
+# NOSE_VERTICAL_LANDMARKS   = [4, 94]
+# NOSE_LANDMARKS = NOSE_HORIZONTAL_LANDMARKS + NOSE_VERTICAL_LANDMARKS + UPPER_LIPS_LANDMARK
+
+
+# # ============================================================
+# # EMA Landmark Smoother
+# # ============================================================
+# # Smooths every (x, y, z) of every landmark with an exponential
+# # moving average BEFORE any ROI is derived from them. This means
+# # every downstream ut.get_* function automatically inherits smooth,
+# # jitter-free coordinates -- no need to smooth each ROI separately.
+# #
+# #   smoothed = alpha * raw + (1 - alpha) * smoothed_prev
+# #
+# # alpha closer to 1.0 -> less smoothing, more responsive (more jitter)
+# # alpha closer to 0.0 -> more smoothing, more lag (less jitter)
+# # 0.3-0.5 is a good starting range for face landmarks at ~25-30 fps.
+
+# class LandmarkEMASmoother:
+#     def __init__(self, alpha=0.4, num_landmarks=478):
+#         self.alpha = alpha
+#         self.num_landmarks = num_landmarks
+#         self.prev = None  # np.ndarray shape (num_landmarks, 3)
+
+#     def smooth(self, face_landmarks):
+#         """
+#         face_landmarks: mediapipe NormalizedLandmarkList (results.multi_face_landmarks[i])
+#         Mutates face_landmarks in place with smoothed values and returns it,
+#         so it can be dropped straight into your existing ut.get_* calls unchanged.
+#         """
+#         raw = np.array(
+#             [[lm.x, lm.y, lm.z] for lm in face_landmarks.landmark],
+#             dtype=np.float64
+#         )
+
+#         if self.prev is None or self.prev.shape != raw.shape:
+#             # first frame (or face count changed) -> no history yet
+#             self.prev = raw.copy()
+#         else:
+#             self.prev = self.alpha * raw + (1 - self.alpha) * self.prev
+
+#         for i, lm in enumerate(face_landmarks.landmark):
+#             lm.x = float(self.prev[i, 0])
+#             lm.y = float(self.prev[i, 1])
+#             lm.z = float(self.prev[i, 2])
+
+#         return face_landmarks
+
+#     def reset(self):
+#         """Call this if the face is lost for a frame or more, so the EMA
+#         doesn't try to interpolate across a gap / a different face."""
+#         self.prev = None
+
+
+# landmark_smoother = LandmarkEMASmoother(alpha=0.4)
+
+
+# cap = cv2.VideoCapture(video_path)
+
+# while True:
+
+#     ret, frame = cap.read()
+
+#     if not ret:
+#         break
+
+#     grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     transformed_grey = ut.get_transformed_image(grey)
+
+#     #     # -----------------------------------------
+#     #     # ROTATE 90° RIGHT
+#     #     # -----------------------------------------
+#     # transformed_grey = cv2.rotate(
+#     #         transformed_grey,
+#     #         cv2.ROTATE_90_CLOCKWISE
+#     #     )
+
+#     rgb = cv2.cvtColor(transformed_grey, cv2.COLOR_GRAY2BGR)  # converting single-channel image to 3-channel image, becasue mediapie expects a RGB (3-channel) image
+
+#     results = face_mesh.process(rgb)                          # Processing the RGB image
+
+#     if results.multi_face_landmarks:
+
+#         for face_landmarks in results.multi_face_landmarks:              # loop for each face found in the video
+
+#            # smooth the raw landmarks BEFORE deriving any ROI from them
+#            face_landmarks = landmark_smoother.smooth(face_landmarks)
+
+#            top_left_cords, bottom_right_cords, got_frame = ut.get_breathing_roi_cords(transformed_grey, face_landmarks)
+#            polygon_points, mean_pixel, got_frame = ut.get_forhead_poly_coords(transformed_grey, face_landmarks)
+#            l,r, got_frame = ut.get_cheeks_coordinates(transformed_grey, face_landmarks, [], [])
+
+#            (
+#             top_left_coords,
+#                 bottom_right_coords,
+#                 top_right_coords,
+#                 bottom_left_coords, got_frame
+#             ) = ut.get_eyes_coordinates(
+#                 transformed_grey,
+#                 face_landmarks
+#             )
+
+#             # print(top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords)
+#            top_left_coords, bottom_right_coords, got_frame = ut.get_nose_tip_coordinates(
+#                                                                                 transformed_grey,
+#                                                                                 face_landmarks
+#                                                                                 )
+#            print(top_left_cords, bottom_right_cords, type(got_frame))
+#            print(polygon_points, mean_pixel, type(got_frame))
+#            print(l,r, type(got_frame))
+#            print(top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords, type(got_frame))
+#            print(top_left_coords, bottom_right_coords, type(got_frame))
+
+#            print("#"*150)
+#         #    cv2.circle(frame, top_left_cords, 5, (255, 255, 255), -5)   # trying to display DOT on original rgb frame, by getting the
+#                                                                          # coordinates from the utilities function.
+#     else:
+#         # face lost this frame -> reset EMA so it doesn't blend garbage
+#         # history into the next detection
+#         landmark_smoother.reset()
+
+#     cv2.imshow("Transformed Grey", got_frame)    #just displaying the modified got_frame, which has been processed by these modular python FUNCTIONS()
+#     cv2.imshow("RGB framea", frame)
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#         break
+
+# cap.release()
+# cv2.destroyAllWindows()
+
+###############################################################
+
+
+
+# ============================================================
+# breathing_box2.py
+#
+# Removed the Jitter ROI and make it SMOOTH using EMA
+# (Exponential Moving Average)
+#
 # Using this as a Driver of the Utility of Scratch
-# this file using all the ROI from uitlity code
+#
+# This file uses all the ROI functions from utilities.py
+# ============================================================
 
 import mediapipe as mp
 import numpy as np
@@ -8,11 +181,23 @@ import cv2
 import utilities as ut
 
 
+# ============================================================
+# VIDEO PATH
+# ============================================================
+
 # video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal.mpg"
-video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
-video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_30_40.mpg"
-video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_wmv_30_40.wmv"
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\01_Passive_Profiling\61_passive_thermal.mpg"
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_30_40.mpg"
+
+# video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_wmv_30_40.wmv"
+
 # video_path = r"D:\2026-08-20_Thermal_Meditation\TopInfrared\4.mp4"
+
+video_path = r"D:\000_ofc_thermalData\sorted_data\61\61_HDRS_Thermal_30_40.mpg"
+video_path = r"D:\000_ofc_thermalData\sorted_data\44\44_HDRS_Thermal_25_40.mpg"
+
 
 # ============================================================
 # MediaPipe Face Mesh Setup
@@ -28,133 +213,472 @@ face_mesh = mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5
 )
 
-UPPER_LIPS_LANDMARK       = [13, 206, 426]
+
+# ============================================================
+# Landmark definitions
+# ============================================================
+
+UPPER_LIPS_LANDMARK = [13, 206, 426]
+
 NOSE_HORIZONTAL_LANDMARKS = [64, 278]
-NOSE_VERTICAL_LANDMARKS   = [4, 94]
-NOSE_LANDMARKS = NOSE_HORIZONTAL_LANDMARKS + NOSE_VERTICAL_LANDMARKS + UPPER_LIPS_LANDMARK
+
+NOSE_VERTICAL_LANDMARKS = [4, 94]
+
+NOSE_LANDMARKS = (
+    NOSE_HORIZONTAL_LANDMARKS
+    + NOSE_VERTICAL_LANDMARKS
+    + UPPER_LIPS_LANDMARK
+)
 
 
 # ============================================================
 # EMA Landmark Smoother
 # ============================================================
-# Smooths every (x, y, z) of every landmark with an exponential
-# moving average BEFORE any ROI is derived from them. This means
-# every downstream ut.get_* function automatically inherits smooth,
-# jitter-free coordinates -- no need to smooth each ROI separately.
+
+# Smooths every (x, y, z) coordinate of every landmark
+# with an Exponential Moving Average BEFORE any ROI
+# is derived from them.
 #
-#   smoothed = alpha * raw + (1 - alpha) * smoothed_prev
+# Therefore, every downstream ut.get_* function
+# automatically receives smoothed landmarks.
 #
-# alpha closer to 1.0 -> less smoothing, more responsive (more jitter)
-# alpha closer to 0.0 -> more smoothing, more lag (less jitter)
-# 0.3-0.5 is a good starting range for face landmarks at ~25-30 fps.
+# Formula:
+#
+# smoothed = alpha * raw + (1 - alpha) * smoothed_prev
+#
+# alpha closer to 1.0:
+#     less smoothing
+#     more responsive
+#     more jitter
+#
+# alpha closer to 0.0:
+#     more smoothing
+#     more lag
+#     less jitter
+#
+# 0.3 - 0.5 is a reasonable starting range
+# for face landmarks around 25-30 FPS.
+
 
 class LandmarkEMASmoother:
+
     def __init__(self, alpha=0.4, num_landmarks=478):
+
         self.alpha = alpha
         self.num_landmarks = num_landmarks
-        self.prev = None  # np.ndarray shape (num_landmarks, 3)
+
+        # Previous smoothed landmark positions
+        #
+        # Shape:
+        # (num_landmarks, 3)
+        #
+        # Each landmark contains:
+        # x, y, z
+
+        self.prev = None
+
 
     def smooth(self, face_landmarks):
+
         """
-        face_landmarks: mediapipe NormalizedLandmarkList (results.multi_face_landmarks[i])
-        Mutates face_landmarks in place with smoothed values and returns it,
-        so it can be dropped straight into your existing ut.get_* calls unchanged.
+        face_landmarks:
+            MediaPipe NormalizedLandmarkList
+
+        The function:
+
+        1. Extracts raw x, y, z coordinates
+        2. Applies EMA
+        3. Puts the smoothed coordinates back
+           into the MediaPipe landmark object
+        4. Returns the modified landmark object
         """
+
+        # ----------------------------------------------------
+        # Convert MediaPipe landmarks to NumPy array
+        # ----------------------------------------------------
+
         raw = np.array(
-            [[lm.x, lm.y, lm.z] for lm in face_landmarks.landmark],
+            [
+                [lm.x, lm.y, lm.z]
+                for lm in face_landmarks.landmark
+            ],
             dtype=np.float64
         )
 
+
+        # ----------------------------------------------------
+        # First frame / no previous history
+        # ----------------------------------------------------
+
         if self.prev is None or self.prev.shape != raw.shape:
-            # first frame (or face count changed) -> no history yet
+
+            # No previous landmark history exists.
+
             self.prev = raw.copy()
+
+
+        # ----------------------------------------------------
+        # Subsequent frames
+        # ----------------------------------------------------
+
         else:
-            self.prev = self.alpha * raw + (1 - self.alpha) * self.prev
+
+            self.prev = (
+                self.alpha * raw
+                +
+                (1 - self.alpha) * self.prev
+            )
+
+
+        # ----------------------------------------------------
+        # Put smoothed coordinates back into MediaPipe object
+        # ----------------------------------------------------
 
         for i, lm in enumerate(face_landmarks.landmark):
+
             lm.x = float(self.prev[i, 0])
             lm.y = float(self.prev[i, 1])
             lm.z = float(self.prev[i, 2])
 
+
         return face_landmarks
 
+
     def reset(self):
-        """Call this if the face is lost for a frame or more, so the EMA
-        doesn't try to interpolate across a gap / a different face."""
+
+        """
+        Reset EMA history.
+
+        This is called when the face is not detected.
+
+        This prevents old landmark positions from being
+        blended with a newly detected face.
+        """
+
         self.prev = None
 
+
+# ============================================================
+# Create EMA smoother
+# ============================================================
 
 landmark_smoother = LandmarkEMASmoother(alpha=0.4)
 
 
+# ============================================================
+# Open Video
+# ============================================================
+
 cap = cv2.VideoCapture(video_path)
+
+
+# ============================================================
+# Check whether video opened successfully
+# ============================================================
+
+if not cap.isOpened():
+
+    print("ERROR: Could not open video:")
+    print(video_path)
+
+    raise SystemExit
+
+
+# ============================================================
+# Main Video Loop
+# ============================================================
 
 while True:
 
+    # --------------------------------------------------------
+    # Read next frame
+    # --------------------------------------------------------
+
     ret, frame = cap.read()
 
+
+    # --------------------------------------------------------
+    # End of video
+    # --------------------------------------------------------
+
     if not ret:
+
         break
 
-    grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # --------------------------------------------------------
+    # Convert BGR frame to grayscale
+    # --------------------------------------------------------
+
+    grey = cv2.cvtColor(
+        frame,
+        cv2.COLOR_BGR2GRAY
+    )
+
+
+    # --------------------------------------------------------
+    # Apply your image transformation pipeline
+    # --------------------------------------------------------
+
     transformed_grey = ut.get_transformed_image(grey)
 
-    #     # -----------------------------------------
-    #     # ROTATE 90° RIGHT
-    #     # -----------------------------------------
+
+    # ========================================================
+    # IMPORTANT FACE-LOSS FIX
+    # ========================================================
+    #
+    # Always initialize got_frame.
+    #
+    # If a face is detected:
+    #     ROI utility functions will modify/replace got_frame.
+    #
+    # If NO face is detected:
+    #     got_frame remains this transformed image.
+    #
+    # Therefore cv2.imshow() will always have a valid frame.
+    # ========================================================
+
+    got_frame = transformed_grey.copy()
+
+
+    # ========================================================
+    # OPTIONAL 90° ROTATION
+    # ========================================================
+
     # transformed_grey = cv2.rotate(
-    #         transformed_grey,
-    #         cv2.ROTATE_90_CLOCKWISE
-    #     )
+    #     transformed_grey,
+    #     cv2.ROTATE_90_CLOCKWISE
+    # )
 
-    rgb = cv2.cvtColor(transformed_grey, cv2.COLOR_GRAY2BGR)  # converting single-channel image to 3-channel image, becasue mediapie expects a RGB (3-channel) image
 
-    results = face_mesh.process(rgb)                          # Processing the RGB image
+    # ========================================================
+    # Convert grayscale to 3-channel image
+    #
+    # MediaPipe expects RGB input.
+    #
+    # Since transformed_grey is grayscale, convert:
+    #
+    # grayscale → BGR
+    #
+    # ========================================================
+
+    rgb = cv2.cvtColor(
+        transformed_grey,
+        cv2.COLOR_GRAY2BGR
+    )
+
+
+    # ========================================================
+    # MediaPipe Face Mesh
+    # ========================================================
+
+    results = face_mesh.process(rgb)
+
+
+    # ========================================================
+    # FACE DETECTED
+    # ========================================================
 
     if results.multi_face_landmarks:
 
-        for face_landmarks in results.multi_face_landmarks:              # loop for each face found in the video
+        for face_landmarks in results.multi_face_landmarks:
 
-           # smooth the raw landmarks BEFORE deriving any ROI from them
-           face_landmarks = landmark_smoother.smooth(face_landmarks)
 
-           top_left_cords, bottom_right_cords, got_frame = ut.get_breathing_roi_cords(transformed_grey, face_landmarks)
-           polygon_points, mean_pixel, got_frame = ut.get_forhead_poly_coords(transformed_grey, face_landmarks)
-           l,r, got_frame = ut.get_cheeks_coordinates(transformed_grey, face_landmarks, [], [])
+            # ==================================================
+            # Smooth landmarks BEFORE deriving ROIs
+            # ==================================================
 
-           (
-            top_left_coords,
+            face_landmarks = landmark_smoother.smooth(
+                face_landmarks
+            )
+
+
+            # ==================================================
+            # BREATHING ROI
+            # ==================================================
+
+            (
+                top_left_cords,
+                bottom_right_cords,
+                got_frame
+            ) = ut.get_breathing_roi_cords(
+                transformed_grey,
+                face_landmarks
+            )
+
+
+            # ==================================================
+            # FOREHEAD ROI
+            # ==================================================
+
+            (
+                polygon_points,
+                mean_pixel,
+                got_frame
+            ) = ut.get_forhead_poly_coords(
+                transformed_grey,
+                face_landmarks
+            )
+
+
+            # ==================================================
+            # CHEEKS ROI
+            # ==================================================
+
+            (
+                l,
+                r,
+                got_frame
+            ) = ut.get_cheeks_coordinates(
+                transformed_grey,
+                face_landmarks,
+                [],
+                []
+            )
+
+
+            # ==================================================
+            # EYES ROI
+            # ==================================================
+
+            (
+                top_left_coords,
                 bottom_right_coords,
                 top_right_coords,
-                bottom_left_coords, got_frame
+                bottom_left_coords,
+                got_frame
             ) = ut.get_eyes_coordinates(
                 transformed_grey,
                 face_landmarks
             )
 
-            # print(top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords)
-           top_left_coords, bottom_right_coords, got_frame = ut.get_nose_tip_coordinates(
-                                                                                transformed_grey,
-                                                                                face_landmarks
-                                                                                )
-           print(top_left_cords, bottom_right_cords, type(got_frame))
-           print(polygon_points, mean_pixel, type(got_frame))
-           print(l,r, type(got_frame))
-           print(top_left_coords, bottom_right_coords, top_right_coords, bottom_left_coords, type(got_frame))
-           print(top_left_coords, bottom_right_coords, type(got_frame))
 
-           print("#"*150)
-        #    cv2.circle(frame, top_left_cords, 5, (255, 255, 255), -5)   # trying to display DOT on original rgb frame, by getting the
-                                                                         # coordinates from the utilities function.
+            # ==================================================
+            # NOSE TIP ROI
+            # ==================================================
+
+            (
+                top_left_coords,
+                bottom_right_coords,
+                got_frame
+            ) = ut.get_nose_tip_coordinates(
+                transformed_grey,
+                face_landmarks
+            )
+
+
+            # ==================================================
+            # PRINT ROI INFORMATION
+            # ==================================================
+
+            print(
+                top_left_cords,
+                bottom_right_cords,
+                type(got_frame)
+            )
+
+
+            print(
+                polygon_points,
+                mean_pixel,
+                type(got_frame)
+            )
+
+
+            print(
+                l,
+                r,
+                type(got_frame)
+            )
+
+
+            print(
+                top_left_coords,
+                bottom_right_coords,
+                top_right_coords,
+                bottom_left_coords,
+                type(got_frame)
+            )
+
+
+            print(
+                top_left_coords,
+                bottom_right_coords,
+                type(got_frame)
+            )
+
+
+            print("#" * 150)
+
+
+    # ========================================================
+    # NO FACE DETECTED
+    # ========================================================
+
     else:
-        # face lost this frame -> reset EMA so it doesn't blend garbage
-        # history into the next detection
+
+        # ----------------------------------------------------
+        # Reset EMA history
+        #
+        # This prevents old landmark positions from being
+        # blended with the next newly detected face.
+        # ----------------------------------------------------
+
         landmark_smoother.reset()
 
-    cv2.imshow("Transformed Grey", got_frame)    #just displaying the modified got_frame, which has been processed by these modular python FUNCTIONS()
-    cv2.imshow("RGB framea", frame)
+
+        print("No face detected")
+
+
+        # ----------------------------------------------------
+        # IMPORTANT:
+        #
+        # We do NOT need to do anything else here.
+        #
+        # got_frame was already initialized above as:
+        #
+        # got_frame = transformed_grey.copy()
+        #
+        # Therefore the current frame will simply be displayed
+        # without ROI markings.
+        # ----------------------------------------------------
+
+
+    # ========================================================
+    # DISPLAY TRANSFORMED FRAME
+    # ========================================================
+
+    cv2.imshow(
+        "Transformed Grey",
+        got_frame
+    )
+
+
+    # ========================================================
+    # DISPLAY ORIGINAL FRAME
+    # ========================================================
+
+    cv2.imshow(
+        "RGB framea",
+        frame
+    )
+
+
+    # ========================================================
+    # Press Q to quit
+    # ========================================================
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
+
         break
 
+
+# ============================================================
+# CLEANUP
+# ============================================================
+
 cap.release()
+
+face_mesh.close()
+
 cv2.destroyAllWindows()

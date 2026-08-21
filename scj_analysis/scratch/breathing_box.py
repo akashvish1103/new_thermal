@@ -12,7 +12,8 @@ video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\61_2026-07-13\0
 video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_30_40.mpg"
 video_path = r"D:\Tihar_thermal_data_Input\Sabarmati_sample_data\71_2026-07-15\02_Psychometric_Tests\71_HDRS_Thermal_wmv_30_40.wmv"
 # video_path = r"D:\2026-08-20_Thermal_Meditation\TopInfrared\4.mp4"
-
+video_path = r"D:\000_ofc_thermalData\sorted_data\44\44_HDRS_Thermal_25_40.mpg"
+# video_path = r"D:\000_ofc_thermalData\sorted_data\45\45_HDRS_Thermal_30_40.mpg"
 # ============================================================
 # MediaPipe Face Mesh Setup
 # ============================================================
