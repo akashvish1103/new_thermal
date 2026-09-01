@@ -1,3 +1,5 @@
+# Batch processing CODE -- no CV2 Display window for faster Processing
+
 # This Code works fine, Time Duration issue solved...
 # Solved jitter ROI issue
 # Use this ONLY for Saving the ROI LOG file
